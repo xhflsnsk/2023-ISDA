@@ -1,0 +1,199 @@
+---
+title: "Relationship Between Social Media And Mental Health"
+author: "신정민 이현지 최유진"
+date: "2023-12-07"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+```
+# Executive summary
+Many people in the modern society use social media. Some people use social media with a clear purpose to get information or have their own profile, but most people use it without much purpose, such as because their friends do it or to take time away. On social media, a space that opens itself up to not only close acquaintances but also strangers, people do not want to show their dirty work or bad work. They only want to show their success, living well, and being happy. Therefore, people on social media are only people with money and happiness without worries. When you encounter these images every day, you are forced to compare their situation with your own, and you lament your situation and fall into depression. In social media that is used for no purpose, people are stressed and depressed by comparing them to others without knowing.
+
+Our team would like to talk about the impact of this use of social media on mental health.
+
+# Data background
+
+This data was investigated to examine the effect of social media use on mental health in statistics lecture at university. Mental health-related questions are provided on a Likert scale along with data such as age, social media in use, social media usage time and etc. This data contains a five-point Likert scale survey of various variables such as comparison with others, depression, and sleep disorders. Through five point scale variables, the correlation between social media use and mental health can be found.
+
+# Data Cleaning
+![](images/DataCleaning.png)
+The original dataset contains responses from a total of 481 participants, ranging from teenagers to those aged 70 and above, with one timestamp and responses to 20 questions. To focus on the analysis of the most active age group, the respondents in their 20s, three data preprocessing steps were undertaken.
+
+1. The column names were redefined.
+
+In the original dataset, the names were defined as long sentences in question form to elicit responses. In order to reprocess and analyze it smoothly, it was redefined as a new name. It was set in a short form so that only the core of the question could be known. 
+
+2. Invalid values were removed.
+
+While there were no missing values for the timestamp and responses to the 20 questions, some data contained invalid values (e.g., age - 26.7). For rows containing such invalid values, the appropriateness of the other responses was deemed uncertain. Hence, these rows were filtered out, and the analysis proceeded. Since a proper response for "age" should be an integer, erroneous non-integer data were filtered out. The filtered valid data were then converted to integers and saved.
+
+3. The data was filtered to limit the age range to the 20s.
+
+The original dataset encompassed individuals aged 10 to 70 and above. However, respondents in their 20s constituted an overwhelming majority, with 335 out of 481 participants, accounting for approximately 69.7%. Therefore, rather than analyzing the entire age range, focusing on the 20s, which constitute over half of the total responses and have a significant association with social media, was deemed more meaningful. Consequently, the data was filtered to include individuals aged 20 to less than 30.
+
+```{r}
+smmh <- read_csv("smmh.csv")
+
+# Redefining Names for Each Column
+colnames(smmh) <- c("timestamp","age","gender","relationship","occupation",
+                    "affiliated_organizations","use_social_media","social_media_platforms","daily_time","without_purpose",
+                    "distracted","restless","distractibility","worry","difficulty_concentrating",
+                    "compare","fellings_comparisons","validation","depressed","fluctuation","sleepissues")  
+
+# Removing invalid values
+smmh <- smmh %>%
+  filter(!is.na(as.integer(age)))
+
+# Converting Response Data for Age to Integer
+smmh$age <- as.integer(smmh$age)
+
+# Filtering for the 20s
+smmh_cleaned <- smmh %>%
+    filter(age >= 20 & age <30)
+
+smmh_cleaned
+```
+
+
+# Individual figures
+
+## Figure 1
+
+![](images/purpose_compare.png)
+```{r}
+smmh_new <- smmh_cleaned %>%
+    group_by(age, daily_time) %>%
+    summarise_if(is.numeric, funs(mean, sd), na.rm = TRUE) %>%
+    ungroup()
+smmh_new
+
+p <- ggplot(data = smmh_new,
+            mapping = aes(x = without_purpose_mean,
+                          y = compare_mean,
+                          color = daily_time))
+p + geom_point(size = 3) + 
+    labs(title = "Correlation between Using without purpose and Compare by Daily Media Use",
+         x = "Using Social Media Without Purpose",
+         y = "Mean Compare With Others") +
+    annotate(geom = "rect", xmin = 3.4, xmax = 5.2,
+             ymin = 2.1, ymax = 4.1, fill = "magenta", alpha = 0.05) +
+    annotate(geom = "rect", xmin = 0.9, xmax = 2.8,
+             ymin = 0.9, ymax = 3.1, fill = "blue", alpha = 0.05)
+
+ggsave(filename = "images/purpose_compare.png")
+```
+
+We used dotted graph for examining the degree of comparison with others according to the degree of use of social media.
+Also, we tried to check whether there is a difference according to the usage time.
+
+Through the part where many dots were gathered, it was confirmed that the higher the degree of use of social media without purpose, the more they compared with others.
+
+When dividing into three groups: low use (less than 1 hour, 1 hour to 2 hours), medium use (2 to 4 hours), and high use (more than 4 hours),
+
+the low-use group had a low degree of use of social media without purpose, and the high-use group had a high degree of use without purpose.
+The groups showing high comparison with others were the middle use and high use groups.
+
+Through the dotted graph, we could find out that people who spend less time on social media do not use it without purpose and do not compare with others that much.
+On the other hand, we could find out that people who spend more than 2 hours usually use social media without purpose and they compare with others.
+
+## Figure 2
+
+![](images/compare_depressed.png)
+```{r}
+smmh2 <- smmh_cleaned %>%
+    group_by(daily_time, compare)%>%
+    summarize(mean_compare = mean(compare), mean_depressed = mean(depressed))
+
+p2 <- ggplot(data = smmh2,
+             mapping = aes(x = compare, y = mean_depressed, color = daily_time))
+p2 + geom_smooth() +
+    labs(title = "Correlation between Compare with others and Feeling Depressed", x = "Compare With Others", y = "Mean Feeling Depressed")
+
+ggsave(filename = "compare_depressed.png")
+```
+
+Second, we looked at the effect of the degree of comparison with others on depression based on social media usage time.
+At this time, we tried to compare the effects by grouping data into social media usage time.
+
+First of all, "geom_smooth()" was used to show the correlation between the degree of comparison with others and depression.
+Overall, it can be seen that the degree of comparison with others affects the degree of depression by showing an upward graph.
+
+If we compare the effect of usage time here, we can see that the graph of people who use it for less than an hour is placed at the bottom (blue) and the graph of people who use it for more than five hours is placed at the top (pink).
+
+For the middle-use group that uses 2 to 4 hours, there is no significant difference between each usage time.
+However, from the clear difference between the high-use and low-use groups, we can see that the more time we spend on social media, the more we compare with others, and the more we feel depression through it.
+The less time we spend on social media, the less we compare with others, and the less we feel depression.
+
+## Figure 3
+
+![](images/depression_sleep.png)
+
+```{r}
+smmh2 <- smmh_cleaned %>%
+    group_by(daily_time) %>% 
+    summarize(mean_depressed = mean(depressed), mean_sleepissues = mean(sleepissues))
+
+p3 <- ggplot(data = smmh2,
+             mapping = aes(x = mean_depressed,
+                           y = mean_sleepissues,
+                           label = daily_time,
+                           color = daily_time))
+
+p3 + geom_point(size = 3) + 
+    geom_text(vjust = -1, size = 3) + 
+    labs(title = "<Correlation between Depression and Sleep Issues by Daily Media Use>",
+         x = "Mean Depression Level",
+         y = "Mean Sleep Issues Scale") +
+    annotate(geom = "rect", xmin = 3.55, xmax = 3.9,
+             ymin = 3.35, ymax = 3.6, fill = "magenta", alpha = 0.1) +
+    annotate(geom = "text", x = 3.55, y = 3.5, color = "magenta",
+             label = "High Depression \nHigh Sleep Issues <=", 
+             size = 3.5, hjust = 1) +
+    annotate(geom = "rect", xmin = 2.45, xmax = 2.75,
+             ymin = 2.9, ymax = 3.05, fill = "blue", alpha = 0.1) +
+    annotate(geom = "text", x = 2.75, y = 3.0, color = "blue",
+             label = "=> Low Depression \n Low Sleep Issues", 
+             size = 3.5, hjust = 0) +
+    theme(legend.position = "none",
+          plot.title = element_text(size = 14, hjust = 0.5, face='bold'))
+
+ggsave(filename = "images/depression_sleep.png")
+
+```
+
+Finally, we compared how the degree of sleep issues appear according to the degree of depression based on the daily using time.
+
+Both depression and sleep disturbances are measured on a 5-point scale, we tried to compare them using mean values.
+In addition to examining the relationship between depression and sleep disturbances, this involves a triple comparison based on usage levels.
+To visualize the association for three criteria, we implemented a scatter plot using "geom_point()".
+
+To implement the graph that examines the distribution of each group, we initially grouped them based on the usage of social media.
+Subsequently, we calculated the mean values for depression and sleep disturbances in each group.
+After that, we mapped depression on the x-axis and sleep disturbances on the y-axis to derive the relationship.
+
+The graph reveals several meaningful insights:
+
+- The group with less than an hour of daily social media usage shows lower levels of both depression and sleep disturbances. (blue box)
+- In cases of excessive social media usage (4 hours or more), both depression and sleep disturbances appear to be high. (pink box)
+
+Through this, we can draw the following insights:
+
+- Considering the results of the intermediate group with 1-4 hours of usage, it's evident that the scales of social media usage time, depression, and sleep disturbances are not directly proportional. However, when considering the overall results, a high correlation is observed. Especially, there is a significant difference between the group that hardly uses social media and the group with 4 hours or more of high usage.
+- Considering the results of the "Between 4 and 5 hours" group and the "More than 5 hours" group, it can be assumed that depression does not have a complete causal relationship as a single cause of sleep disorders, but it is generally highly associated
+
+
+
+=> Through the three graphs, we can ultimately conclude:
+
+Generally, the more time you spend on social media,<br>
+→ More likely to use social media without a specific purpose, and the probability of being overwhelmed by comparison tendencies with others is higher.<br>
+→ The higher the degree of comparison tendencies, the higher the level of depression.<br>
+→ Depression has a significant correlation with the extent of experiencing sleep disturbances.
+
+
